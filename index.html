@@ -1,68 +1,182 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>開餵食堂APP</title>
-<link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="apple-touch-icon" href="icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>開餵食堂 APP</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <header class="topbar">
+    <h1>開餵食堂｜經營管理 APP</h1>
+    <p>修正版</p>
+  </header>
 
-<h1>開餵食堂管理系統</h1>
+  <section class="card">
+    <h2>Supabase 連線設定</h2>
+    <div class="grid2">
+      <div>
+        <label>Supabase URL</label>
+        <input id="supabaseUrl" placeholder="https://xxxx.supabase.co" />
+      </div>
+      <div>
+        <label>Publishable Key</label>
+        <input id="supabaseKey" placeholder="sb_publishable__xxxx" />
+      </div>
+    </div>
+    <div class="row">
+      <button id="saveConnBtn">儲存設定</button>
+      <button id="syncBtn" class="secondary">同步 Supabase</button>
+      <span id="connMsg"></span>
+    </div>
+  </section>
 
-<h2>營業額</h2>
-日期 <input type="date" id="date"><br>
-現金 <input type="number" id="cash"><br>
-線上 <input type="number" id="online"><br>
-Uber <input type="number" id="uber"><br>
-其他 <input type="number" id="other"><br>
+  <nav class="tabs">
+    <button data-tab="dashboard">首頁</button>
+    <button data-tab="revenue">營業額</button>
+    <button data-tab="gas">瓦斯</button>
+    <button data-tab="cost">成本</button>
+    <button data-tab="fixed">固定成本</button>
+    <button data-tab="report">報表</button>
+  </nav>
 
-<h3>總營業額：<span id="total">0</span></h3>
-<button onclick="saveRevenue()">儲存</button>
+  <section id="dashboard" class="card tab">
+    <h2>首頁儀表板</h2>
+    <div class="cards">
+      <div class="mini"><h3>今日營業額</h3><div id="todayRevenue">0</div></div>
+      <div class="mini"><h3>今日瓦斯</h3><div id="todayGas">0</div></div>
+      <div class="mini"><h3>今日成本</h3><div id="todayCost">0</div></div>
+      <div class="mini"><h3>今日損益</h3><div id="todayProfit">0</div></div>
+      <div class="mini"><h3>本月營業額</h3><div id="monthRevenue">0</div></div>
+      <div class="mini"><h3>本月變動成本</h3><div id="monthVariable">0</div></div>
+      <div class="mini"><h3>本月固定成本</h3><div id="monthFixed">0</div></div>
+      <div class="mini"><h3>本月預估淨利</h3><div id="monthProfit">0</div></div>
+    </div>
+  </section>
 
-<hr>
+  <section id="revenue" class="card tab hidden">
+    <h2>營業額</h2>
+    <input type="hidden" id="revId" />
+    <div class="grid3">
+      <div><label>日期</label><input id="revDate" type="date" /></div>
+      <div><label>現金</label><input id="revCash" type="number" value="0" /></div>
+      <div><label>線上支付</label><input id="revOnline" type="number" value="0" /></div>
+      <div><label>Uber</label><input id="revUber" type="number" value="0" /></div>
+      <div><label>其他</label><input id="revOther" type="number" value="0" /></div>
+      <div><label>訂單數</label><input id="revOrders" type="number" value="0" /></div>
+    </div>
+    <div class="total-box">
+      <span>自動總營業額</span>
+      <strong id="revTotalDisplay">0</strong>
+    </div>
+    <label>備註</label><textarea id="revNote"></textarea>
+    <div class="row">
+      <button id="saveRevenueBtn">儲存營業額</button>
+      <button id="clearRevenueBtn" class="secondary">清空</button>
+    </div>
+    <h3>營業額紀錄</h3>
+    <div id="revenueList"></div>
+  </section>
 
-<h2>瓦斯</h2>
-日期 <input type="date" id="gas_date"><br>
-度數 <input type="number" id="gas_degree"><br>
-起始度數 <input type="checkbox" id="gas_start"><br>
-<button onclick="saveGas()">儲存瓦斯</button>
+  <section id="gas" class="card tab hidden">
+    <h2>瓦斯</h2>
+    <input type="hidden" id="gasId" />
+    <div class="grid3">
+      <div><label>日期</label><input id="gasDate" type="date" /></div>
+      <div><label>表數</label><input id="gasMeter" type="number" step="0.001" /></div>
+      <div><label>每度成本</label><input id="gasUnitCost" type="number" value="128" /></div>
+    </div>
+    <div class="row">
+      <label class="inline-check"><input id="gasIsStart" type="checkbox" /> 起始度數</label>
+    </div>
+    <label>備註</label><textarea id="gasNote"></textarea>
+    <div class="row">
+      <button id="saveGasBtn">儲存瓦斯</button>
+      <button id="clearGasBtn" class="secondary">清空</button>
+    </div>
+    <h3>瓦斯紀錄</h3>
+    <div id="gasList"></div>
+  </section>
 
-<hr>
+  <section id="cost" class="card tab hidden">
+    <h2>成本明細</h2>
+    <input type="hidden" id="costId" />
+    <div class="grid4">
+      <div><label>日期</label><input id="costDate" type="date" /></div>
+      <div>
+        <label>類別</label>
+        <select id="costCategory">
+          <option value="">請選擇</option>
+          <option>菜商</option>
+          <option>肉品</option>
+          <option>海鮮</option>
+          <option>雜貨</option>
+          <option>麵類</option>
+          <option>包材</option>
+          <option>員工餐</option>
+          <option>電費</option>
+          <option>水費</option>
+          <option>瓦斯</option>
+          <option>網路</option>
+          <option>薪資</option>
+          <option>開元</option>
+          <option>憶家鄉</option>
+          <option>其他</option>
+        </select>
+      </div>
+      <div><label>品項</label><input id="costItem" /></div>
+      <div><label>廠商</label><input id="costSupplier" /></div>
+      <div><label>數量</label><input id="costQuantity" type="number" step="0.01" /></div>
+      <div><label>單位</label><input id="costUnit" placeholder="斤 / 公斤 / 包 / 箱" /></div>
+      <div><label>金額</label><input id="costAmount" type="number" /></div>
+      <div><label>額外說明</label><input id="costQtyNote" placeholder="例如 170/斤、10包" /></div>
+    </div>
+    <div class="row">
+      <label class="inline-check"><input id="costUnpaid" type="checkbox" /> 未結帳</label>
+      <label class="inline-check"><input id="costStaffMeal" type="checkbox" /> 員工餐</label>
+    </div>
+    <label>備註</label><textarea id="costNote"></textarea>
+    <div class="row">
+      <button id="saveCostBtn">儲存成本</button>
+      <button id="clearCostBtn" class="secondary">清空</button>
+    </div>
+    <h3>成本紀錄</h3>
+    <div id="costList"></div>
+  </section>
 
-<h2>成本</h2>
-日期 <input type="date" id="cost_date"><br>
+  <section id="fixed" class="card tab hidden">
+    <h2>固定成本</h2>
+    <input type="hidden" id="fixedId" />
+    <div class="grid3">
+      <div><label>鍵值</label><input id="fixedKey" placeholder="rent" /></div>
+      <div><label>名稱</label><input id="fixedName" placeholder="房租" /></div>
+      <div><label>每月金額</label><input id="fixedAmount" type="number" /></div>
+    </div>
+    <label>備註</label><textarea id="fixedNote"></textarea>
+    <div class="row">
+      <button id="saveFixedBtn">儲存固定成本</button>
+      <button id="clearFixedBtn" class="secondary">清空</button>
+    </div>
+    <h3>固定成本列表</h3>
+    <div id="fixedList"></div>
+  </section>
 
-類別
-<select id="category">
-<option>菜</option>
-<option>肉</option>
-<option>雜貨</option>
-<option>包材</option>
-<option>瓦斯</option>
-<option>水費</option>
-<option>開元半成品</option>
-</select><br>
-
-品項 <input type="text" id="item"><br>
-數量 <input type="number" id="qty"><br>
-
-單位
-<select id="unit">
-<option>斤</option>
-<option>公斤</option>
-<option>包</option>
-<option>箱</option>
-</select><br>
-
-金額 <input type="number" id="amount"><br>
-備註 <input type="text" id="note"><br>
-
-<button onclick="saveCost()">儲存成本</button>
+  <section id="report" class="card tab hidden">
+    <h2>月報表</h2>
+    <div class="row">
+      <label>月份</label>
+      <input id="reportMonth" type="month" />
+      <button id="refreshBtn">更新</button>
+      <button id="demoBtn" class="secondary">載入示範資料</button>
+      <button id="exportBtn" class="secondary">匯出 JSON</button>
+    </div>
+    <div id="reportSummary"></div>
+  </section>
 
 <script src="app.js"></script>
-
 </body>
 </html>
