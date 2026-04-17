@@ -387,8 +387,44 @@ async function saveFixed() {
   renderAll();
 }
 
-function del(key, id) {
+async function del(key, id) {
   if (!confirm('確定刪除？')) return;
+
+  const item = db[key].find(x => x.id === id);
+
+  if (sb && item) {
+    try {
+      if (key === 'revenue') {
+        await sb.from('daily_revenue')
+          .delete()
+          .eq('business_date', item.business_date);
+      }
+
+      if (key === 'gas') {
+        await sb.from('gas_logs')
+          .delete()
+          .eq('log_date', item.log_date);
+      }
+
+      if (key === 'costs') {
+        await sb.from('expense_records')
+          .delete()
+          .eq('expense_date', item.expense_date)
+          .eq('item_name', item.item_name)
+          .eq('amount', item.amount);
+      }
+
+      if (key === 'fixed') {
+        await sb.from('fixed_costs')
+          .delete()
+          .eq('item_key', item.item_key);
+      }
+
+    } catch (e) {
+      console.log('刪除同步失敗', e);
+    }
+  }
+
   db[key] = db[key].filter((x) => x.id !== id);
   saveDb();
   renderAll();
