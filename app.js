@@ -1,5 +1,5 @@
-const STORE = 'kaiwei_revised_ui_data_v4';
-const CONN = 'kaiwei_revised_ui_conn_v4';
+const STORE = 'kaiwei_revised_ui_data_v5';
+const CONN = 'kaiwei_revised_ui_conn_v5';
 
 let db = {
   revenue: [],
@@ -43,8 +43,8 @@ function loadConn() {
   const raw = localStorage.getItem(CONN);
   if (!raw) return;
   const c = JSON.parse(raw);
-  $('supabaseUrl').value = c.url || '';
-  $('supabaseKey').value = c.key || '';
+  if ($('supabaseUrl')) $('supabaseUrl').value = c.url || '';
+  if ($('supabaseKey')) $('supabaseKey').value = c.key || '';
   initSb();
 }
 
@@ -52,12 +52,12 @@ function saveConnection() {
   localStorage.setItem(
     CONN,
     JSON.stringify({
-      url: $('supabaseUrl').value.trim(),
-      key: $('supabaseKey').value.trim()
+      url: $('supabaseUrl') ? $('supabaseUrl').value.trim() : '',
+      key: $('supabaseKey') ? $('supabaseKey').value.trim() : ''
     })
   );
   initSb();
-  $('connMsg').textContent = '已儲存設定';
+  if ($('connMsg')) $('connMsg').textContent = '已儲存設定';
 }
 
 function initSb() {
@@ -67,10 +67,11 @@ function initSb() {
   if (c.url && c.key) {
     try {
       sb = window.supabase.createClient(c.url, c.key);
-      $('connMsg').textContent = 'Supabase 已連線';
+      if ($('connMsg')) $('connMsg').textContent = 'Supabase 已連線';
     } catch (e) {
-      $('connMsg').textContent = 'Supabase 設定失敗';
       sb = null;
+      if ($('connMsg')) $('connMsg').textContent = 'Supabase 設定失敗';
+      console.error(e);
     }
   }
 }
@@ -79,7 +80,8 @@ function bind() {
   document.querySelectorAll('.tabs button').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach((x) => x.classList.add('hidden'));
-      $(btn.dataset.tab).classList.remove('hidden');
+      const target = $(btn.dataset.tab);
+      if (target) target.classList.remove('hidden');
     });
   });
 
@@ -138,7 +140,8 @@ function gasCalc(g) {
   if (g.is_start_meter) return { usage: 0, cost: 0, prev: null };
   const prev = prevGas(g.log_date, g.id);
   if (!prev) return { usage: 0, cost: 0, prev: null };
-  const usage = Math.max(0, Number(g.meter_reading) - Number(prev.meter_reading));
+
+  const usage = Math.max(0, Number(g.meter_reading || 0) - Number(prev.meter_reading || 0));
   return {
     usage,
     cost: usage * Number(g.cost_per_unit || 128),
@@ -153,16 +156,60 @@ function upsert(key, row) {
   saveDb();
 }
 
+function clearRevenue() {
+  if ($('revId')) $('revId').value = '';
+  if ($('revDate')) $('revDate').value = todayStr();
+  if ($('revCash')) $('revCash').value = 0;
+  if ($('revOnline')) $('revOnline').value = 0;
+  if ($('revUber')) $('revUber').value = 0;
+  if ($('revOther')) $('revOther').value = 0;
+  if ($('revOrders')) $('revOrders').value = 0;
+  if ($('revNote')) $('revNote').value = '';
+  updateRevenueTotalDisplay();
+}
+
+function clearGas() {
+  if ($('gasId')) $('gasId').value = '';
+  if ($('gasDate')) $('gasDate').value = todayStr();
+  if ($('gasMeter')) $('gasMeter').value = '';
+  if ($('gasUnitCost')) $('gasUnitCost').value = 128;
+  if ($('gasIsStart')) $('gasIsStart').checked = false;
+  if ($('gasNote')) $('gasNote').value = '';
+}
+
+function clearCost() {
+  if ($('costId')) $('costId').value = '';
+  if ($('costDate')) $('costDate').value = todayStr();
+  if ($('costCategory')) $('costCategory').value = '';
+  if ($('costItem')) $('costItem').value = '';
+  if ($('costQuantity')) $('costQuantity').value = '';
+  if ($('costUnit')) $('costUnit').value = '';
+  if ($('costAmount')) $('costAmount').value = '';
+  if ($('costSupplier')) $('costSupplier').value = '';
+  if ($('costQtyNote')) $('costQtyNote').value = '';
+  if ($('costUnpaid')) $('costUnpaid').checked = false;
+  if ($('costStaffMeal')) $('costStaffMeal').checked = false;
+  if ($('costNote')) $('costNote').value = '';
+}
+
+function clearFixed() {
+  if ($('fixedId')) $('fixedId').value = '';
+  if ($('fixedKey')) $('fixedKey').value = '';
+  if ($('fixedName')) $('fixedName').value = '';
+  if ($('fixedAmount')) $('fixedAmount').value = '';
+  if ($('fixedNote')) $('fixedNote').value = '';
+}
+
 async function saveRevenue() {
   const row = {
-    id: $('revId').value || uid(),
-    business_date: $('revDate').value,
-    cash_amount: Number($('revCash').value || 0),
-    online_amount: Number($('revOnline').value || 0),
-    uber_amount: Number($('revUber').value || 0),
-    other_platform_amount: Number($('revOther').value || 0),
-    order_count: Number($('revOrders').value || 0),
-    note: $('revNote').value || ''
+    id: $('revId')?.value || uid(),
+    business_date: $('revDate')?.value || '',
+    cash_amount: Number($('revCash')?.value || 0),
+    online_amount: Number($('revOnline')?.value || 0),
+    uber_amount: Number($('revUber')?.value || 0),
+    other_platform_amount: Number($('revOther')?.value || 0),
+    order_count: Number($('revOrders')?.value || 0),
+    note: $('revNote')?.value || ''
   };
 
   if (!row.business_date) {
@@ -192,29 +239,22 @@ async function saveRevenue() {
   }
 
   clearRevenue();
-  renderAll();
-}
 
-function clearRevenue() {
-  $('revId').value = '';
-  $('revDate').value = todayStr();
-  $('revCash').value = 0;
-  $('revOnline').value = 0;
-  $('revUber').value = 0;
-  $('revOther').value = 0;
-  $('revOrders').value = 0;
-  $('revNote').value = '';
-  updateRevenueTotalDisplay();
+  if (sb) {
+    await fetchAllFromSupabase();
+  }
+
+  renderAll();
 }
 
 async function saveGas() {
   const row = {
-    id: $('gasId').value || uid(),
-    log_date: $('gasDate').value,
-    meter_reading: Number($('gasMeter').value || 0),
-    cost_per_unit: Number($('gasUnitCost').value || 128),
-    is_start_meter: $('gasIsStart').checked,
-    note: $('gasNote').value || ''
+    id: $('gasId')?.value || uid(),
+    log_date: $('gasDate')?.value || '',
+    meter_reading: Number($('gasMeter')?.value || 0),
+    cost_per_unit: Number($('gasUnitCost')?.value || 128),
+    is_start_meter: !!$('gasIsStart')?.checked,
+    note: $('gasNote')?.value || ''
   };
 
   if (!row.log_date) {
@@ -241,32 +281,28 @@ async function saveGas() {
   }
 
   clearGas();
-  renderAll();
-}
 
-function clearGas() {
-  $('gasId').value = '';
-  $('gasDate').value = todayStr();
-  $('gasMeter').value = '';
-  $('gasUnitCost').value = 128;
-  $('gasIsStart').checked = false;
-  $('gasNote').value = '';
+  if (sb) {
+    await fetchAllFromSupabase();
+  }
+
+  renderAll();
 }
 
 async function saveCost() {
   const row = {
-    id: $('costId').value || uid(),
-    expense_date: $('costDate').value,
-    category: $('costCategory').value,
-    item_name: $('costItem').value,
-    quantity: $('costQuantity').value ? Number($('costQuantity').value) : null,
-    unit: $('costUnit').value || '',
-    amount: Number($('costAmount').value || 0),
-    supplier: $('costSupplier').value || '',
-    qty_note: $('costQtyNote').value || '',
-    is_unpaid: $('costUnpaid').checked,
-    is_staff_meal: $('costStaffMeal').checked,
-    note: $('costNote').value || ''
+    id: $('costId')?.value || uid(),
+    expense_date: $('costDate')?.value || '',
+    category: $('costCategory')?.value || '',
+    item_name: $('costItem')?.value || '',
+    quantity: $('costQuantity')?.value ? Number($('costQuantity').value) : null,
+    unit: $('costUnit')?.value || '',
+    amount: Number($('costAmount')?.value || 0),
+    supplier: $('costSupplier')?.value || '',
+    qty_note: $('costQtyNote')?.value || '',
+    is_unpaid: !!$('costUnpaid')?.checked,
+    is_staff_meal: !!$('costStaffMeal')?.checked,
+    note: $('costNote')?.value || ''
   };
 
   if (!row.expense_date || !row.category || !row.item_name) {
@@ -302,31 +338,21 @@ async function saveCost() {
   }
 
   clearCost();
-  renderAll();
-}
 
-function clearCost() {
-  $('costId').value = '';
-  $('costDate').value = todayStr();
-  $('costCategory').value = '';
-  $('costItem').value = '';
-  $('costQuantity').value = '';
-  $('costUnit').value = '';
-  $('costAmount').value = '';
-  $('costSupplier').value = '';
-  $('costQtyNote').value = '';
-  $('costUnpaid').checked = false;
-  $('costStaffMeal').checked = false;
-  $('costNote').value = '';
+  if (sb) {
+    await fetchAllFromSupabase();
+  }
+
+  renderAll();
 }
 
 async function saveFixed() {
   const row = {
-    id: $('fixedId').value || uid(),
-    item_key: $('fixedKey').value,
-    item_name: $('fixedName').value,
-    monthly_amount: Number($('fixedAmount').value || 0),
-    note: $('fixedNote').value || ''
+    id: $('fixedId')?.value || uid(),
+    item_key: $('fixedKey')?.value || '',
+    item_name: $('fixedName')?.value || '',
+    monthly_amount: Number($('fixedAmount')?.value || 0),
+    note: $('fixedNote')?.value || ''
   };
 
   if (!row.item_key || !row.item_name) {
@@ -353,15 +379,12 @@ async function saveFixed() {
   }
 
   clearFixed();
-  renderAll();
-}
 
-function clearFixed() {
-  $('fixedId').value = '';
-  $('fixedKey').value = '';
-  $('fixedName').value = '';
-  $('fixedAmount').value = '';
-  $('fixedNote').value = '';
+  if (sb) {
+    await fetchAllFromSupabase();
+  }
+
+  renderAll();
 }
 
 function del(key, id) {
@@ -374,67 +397,67 @@ function del(key, id) {
 function editRevenue(id) {
   const r = db.revenue.find((x) => x.id === id);
   if (!r) return;
-  document.querySelector('[data-tab="revenue"]').click();
-  $('revId').value = r.id;
-  $('revDate').value = r.business_date;
-  $('revCash').value = r.cash_amount;
-  $('revOnline').value = r.online_amount;
-  $('revUber').value = r.uber_amount;
-  $('revOther').value = r.other_platform_amount;
-  $('revOrders').value = r.order_count;
-  $('revNote').value = r.note || '';
+  document.querySelector('[data-tab="revenue"]')?.click();
+  if ($('revId')) $('revId').value = r.id;
+  if ($('revDate')) $('revDate').value = r.business_date;
+  if ($('revCash')) $('revCash').value = r.cash_amount;
+  if ($('revOnline')) $('revOnline').value = r.online_amount;
+  if ($('revUber')) $('revUber').value = r.uber_amount;
+  if ($('revOther')) $('revOther').value = r.other_platform_amount;
+  if ($('revOrders')) $('revOrders').value = r.order_count;
+  if ($('revNote')) $('revNote').value = r.note || '';
   updateRevenueTotalDisplay();
 }
 
 function editGas(id) {
   const g = db.gas.find((x) => x.id === id);
   if (!g) return;
-  document.querySelector('[data-tab="gas"]').click();
-  $('gasId').value = g.id;
-  $('gasDate').value = g.log_date;
-  $('gasMeter').value = g.meter_reading;
-  $('gasUnitCost').value = g.cost_per_unit;
-  $('gasIsStart').checked = !!g.is_start_meter;
-  $('gasNote').value = g.note || '';
+  document.querySelector('[data-tab="gas"]')?.click();
+  if ($('gasId')) $('gasId').value = g.id;
+  if ($('gasDate')) $('gasDate').value = g.log_date;
+  if ($('gasMeter')) $('gasMeter').value = g.meter_reading;
+  if ($('gasUnitCost')) $('gasUnitCost').value = g.cost_per_unit;
+  if ($('gasIsStart')) $('gasIsStart').checked = !!g.is_start_meter;
+  if ($('gasNote')) $('gasNote').value = g.note || '';
 }
 
 function editCost(id) {
   const c = db.costs.find((x) => x.id === id);
   if (!c) return;
-  document.querySelector('[data-tab="cost"]').click();
-  $('costId').value = c.id;
-  $('costDate').value = c.expense_date;
-  $('costCategory').value = c.category;
-  $('costItem').value = c.item_name;
-  $('costQuantity').value = c.quantity ?? '';
-  $('costUnit').value = c.unit || '';
-  $('costAmount').value = c.amount;
-  $('costSupplier').value = c.supplier || '';
-  $('costQtyNote').value = c.qty_note || '';
-  $('costUnpaid').checked = !!c.is_unpaid;
-  $('costStaffMeal').checked = !!c.is_staff_meal;
-  $('costNote').value = c.note || '';
+  document.querySelector('[data-tab="cost"]')?.click();
+  if ($('costId')) $('costId').value = c.id;
+  if ($('costDate')) $('costDate').value = c.expense_date;
+  if ($('costCategory')) $('costCategory').value = c.category;
+  if ($('costItem')) $('costItem').value = c.item_name;
+  if ($('costQuantity')) $('costQuantity').value = c.quantity ?? '';
+  if ($('costUnit')) $('costUnit').value = c.unit || '';
+  if ($('costAmount')) $('costAmount').value = c.amount;
+  if ($('costSupplier')) $('costSupplier').value = c.supplier || '';
+  if ($('costQtyNote')) $('costQtyNote').value = c.qty_note || '';
+  if ($('costUnpaid')) $('costUnpaid').checked = !!c.is_unpaid;
+  if ($('costStaffMeal')) $('costStaffMeal').checked = !!c.is_staff_meal;
+  if ($('costNote')) $('costNote').value = c.note || '';
 }
 
 function editFixed(id) {
   const f = db.fixed.find((x) => x.id === id);
   if (!f) return;
-  document.querySelector('[data-tab="fixed"]').click();
-  $('fixedId').value = f.id;
-  $('fixedKey').value = f.item_key;
-  $('fixedName').value = f.item_name;
-  $('fixedAmount').value = f.monthly_amount;
-  $('fixedNote').value = f.note || '';
+  document.querySelector('[data-tab="fixed"]')?.click();
+  if ($('fixedId')) $('fixedId').value = f.id;
+  if ($('fixedKey')) $('fixedKey').value = f.item_key;
+  if ($('fixedName')) $('fixedName').value = f.item_name;
+  if ($('fixedAmount')) $('fixedAmount').value = f.monthly_amount;
+  if ($('fixedNote')) $('fixedNote').value = f.note || '';
 }
 
 function renderAll() {
-  if (!$('revDate').value) clearRevenue();
-  if (!$('gasDate').value) clearGas();
-  if (!$('costDate').value) clearCost();
-  if (!$('reportMonth').value) $('reportMonth').value = monthStr();
+  if ($('revDate') && !$('revDate').value) clearRevenue();
+  if ($('gasDate') && !$('gasDate').value) clearGas();
+  if ($('costDate') && !$('costDate').value) clearCost();
+  if ($('reportMonth') && !$('reportMonth').value) $('reportMonth').value = monthStr();
 
   const today = todayStr();
-  const month = $('reportMonth').value || monthStr();
+  const month = $('reportMonth')?.value || monthStr();
 
   const tr = db.revenue.find((x) => x.business_date === today);
   const tg = db.gas.find((x) => x.log_date === today);
@@ -456,116 +479,126 @@ function renderAll() {
   const monthFixedValue = db.fixed.reduce((s, x) => s + Number(x.monthly_amount || 0), 0);
   const monthProfitValue = monthRevenueValue - monthVariableValue - monthFixedValue;
 
-  $('todayRevenue').textContent = money(todayRevenueValue);
-  $('todayGas').textContent = money(todayGasValue);
-  $('todayCost').textContent = money(tc);
-  $('todayProfit').textContent = money(todayProfitValue);
-  $('monthRevenue').textContent = money(monthRevenueValue);
-  $('monthVariable').textContent = money(monthVariableValue);
-  $('monthFixed').textContent = money(monthFixedValue);
-  $('monthProfit').textContent = money(monthProfitValue);
+  if ($('todayRevenue')) $('todayRevenue').textContent = money(todayRevenueValue);
+  if ($('todayGas')) $('todayGas').textContent = money(todayGasValue);
+  if ($('todayCost')) $('todayCost').textContent = money(tc);
+  if ($('todayProfit')) $('todayProfit').textContent = money(todayProfitValue);
+  if ($('monthRevenue')) $('monthRevenue').textContent = money(monthRevenueValue);
+  if ($('monthVariable')) $('monthVariable').textContent = money(monthVariableValue);
+  if ($('monthFixed')) $('monthFixed').textContent = money(monthFixedValue);
+  if ($('monthProfit')) $('monthProfit').textContent = money(monthProfitValue);
 
-  $('revenueList').innerHTML =
-    db.revenue
-      .sort((a, b) => b.business_date.localeCompare(a.business_date))
-      .map(
-        (r) => `
-    <div class="item">
-      <strong>${r.business_date}</strong><br>
-      總營業額：${money(revenueTotal(r))}<br>
-      現金：${money(r.cash_amount)}｜線上：${money(r.online_amount)}｜Uber：${money(r.uber_amount)}｜其他：${money(r.other_platform_amount)}<br>
-      訂單數：${r.order_count}｜客單價：${r.order_count ? money(revenueTotal(r) / r.order_count) : 0}<br>
-      ${r.note ? `備註：${safe(r.note)}<br>` : ''}
-      <div class="row"><button onclick="editRevenue('${r.id}')">編輯</button><button class="secondary" onclick="del('revenue','${r.id}')">刪除</button></div>
-    </div>`
-      )
-      .join('') || '<div class="item">尚無紀錄</div>';
+  if ($('revenueList')) {
+    $('revenueList').innerHTML =
+      db.revenue
+        .sort((a, b) => b.business_date.localeCompare(a.business_date))
+        .map(
+          (r) => `
+      <div class="item">
+        <strong>${r.business_date}</strong><br>
+        總營業額：${money(revenueTotal(r))}<br>
+        現金：${money(r.cash_amount)}｜線上：${money(r.online_amount)}｜Uber：${money(r.uber_amount)}｜其他：${money(r.other_platform_amount)}<br>
+        訂單數：${r.order_count}｜客單價：${r.order_count ? money(revenueTotal(r) / r.order_count) : 0}<br>
+        ${r.note ? `備註：${safe(r.note)}<br>` : ''}
+        <div class="row"><button onclick="editRevenue('${r.id}')">編輯</button><button class="secondary" onclick="del('revenue','${r.id}')">刪除</button></div>
+      </div>`
+        )
+        .join('') || '<div class="item">尚無紀錄</div>';
+  }
 
-  $('gasList').innerHTML =
-    db.gas
-      .sort((a, b) => b.log_date.localeCompare(a.log_date))
-      .map((g) => {
-        const c = gasCalc(g);
-        return `<div class="item">
-      <strong>${g.log_date}</strong>${g.is_start_meter ? '<span class="badge start">起始度數</span>' : ''}<br>
-      表數：${g.meter_reading}<br>
-      前一筆：${c.prev ?? '-'}<br>
-      使用量：${c.usage.toFixed(3)} 度<br>
-      成本：${money(c.cost)}<br>
-      ${g.note ? `備註：${safe(g.note)}<br>` : ''}
-      <div class="row"><button onclick="editGas('${g.id}')">編輯</button><button class="secondary" onclick="del('gas','${g.id}')">刪除</button></div>
-    </div>`;
-      })
-      .join('') || '<div class="item">尚無紀錄</div>';
+  if ($('gasList')) {
+    $('gasList').innerHTML =
+      db.gas
+        .sort((a, b) => b.log_date.localeCompare(a.log_date))
+        .map((g) => {
+          const c = gasCalc(g);
+          return `<div class="item">
+        <strong>${g.log_date}</strong>${g.is_start_meter ? '<span class="badge start">起始度數</span>' : ''}<br>
+        表數：${g.meter_reading}<br>
+        前一筆：${c.prev ?? '-'}<br>
+        使用量：${c.usage.toFixed(3)} 度<br>
+        成本：${money(c.cost)}<br>
+        ${g.note ? `備註：${safe(g.note)}<br>` : ''}
+        <div class="row"><button onclick="editGas('${g.id}')">編輯</button><button class="secondary" onclick="del('gas','${g.id}')">刪除</button></div>
+      </div>`;
+        })
+        .join('') || '<div class="item">尚無紀錄</div>';
+  }
 
-  $('costList').innerHTML =
-    db.costs
-      .sort((a, b) => b.expense_date.localeCompare(a.expense_date))
-      .map(
-        (c) => `
-    <div class="item">
-      <strong>${c.expense_date}</strong>
-      ${c.is_unpaid ? '<span class="badge unpaid">未結帳</span>' : ''}
-      ${c.is_staff_meal ? '<span class="badge staff">員工餐</span>' : ''}<br>
-      類別：${safe(c.category)}｜品項：${safe(c.item_name)}<br>
-      ${c.quantity !== null && c.quantity !== '' ? `數量：${safe(c.quantity)} ${safe(c.unit)}<br>` : ''}
-      金額：${money(c.amount)}<br>
-      ${c.qty_note ? `額外說明：${safe(c.qty_note)}<br>` : ''}
-      ${c.supplier ? `廠商：${safe(c.supplier)}<br>` : ''}
-      ${c.note ? `備註：${safe(c.note)}<br>` : ''}
-      <div class="row"><button onclick="editCost('${c.id}')">編輯</button><button class="secondary" onclick="del('costs','${c.id}')">刪除</button></div>
-    </div>`
-      )
-      .join('') || '<div class="item">尚無紀錄</div>';
+  if ($('costList')) {
+    $('costList').innerHTML =
+      db.costs
+        .sort((a, b) => b.expense_date.localeCompare(a.expense_date))
+        .map(
+          (c) => `
+      <div class="item">
+        <strong>${c.expense_date}</strong>
+        ${c.is_unpaid ? '<span class="badge unpaid">未結帳</span>' : ''}
+        ${c.is_staff_meal ? '<span class="badge staff">員工餐</span>' : ''}<br>
+        類別：${safe(c.category)}｜品項：${safe(c.item_name)}<br>
+        ${c.quantity !== null && c.quantity !== '' ? `數量：${safe(c.quantity)} ${safe(c.unit)}<br>` : ''}
+        金額：${money(c.amount)}<br>
+        ${c.qty_note ? `額外說明：${safe(c.qty_note)}<br>` : ''}
+        ${c.supplier ? `廠商：${safe(c.supplier)}<br>` : ''}
+        ${c.note ? `備註：${safe(c.note)}<br>` : ''}
+        <div class="row"><button onclick="editCost('${c.id}')">編輯</button><button class="secondary" onclick="del('costs','${c.id}')">刪除</button></div>
+      </div>`
+        )
+        .join('') || '<div class="item">尚無紀錄</div>';
+  }
 
-  $('fixedList').innerHTML =
-    db.fixed
-      .map(
-        (f) => `
-    <div class="item">
-      <strong>${safe(f.item_name)}</strong><br>
-      鍵值：${safe(f.item_key)}<br>
-      每月金額：${money(f.monthly_amount)}<br>
-      ${f.note ? `備註：${safe(f.note)}<br>` : ''}
-      <div class="row"><button onclick="editFixed('${f.id}')">編輯</button><button class="secondary" onclick="del('fixed','${f.id}')">刪除</button></div>
-    </div>`
-      )
-      .join('') || '<div class="item">尚無紀錄</div>';
+  if ($('fixedList')) {
+    $('fixedList').innerHTML =
+      db.fixed
+        .map(
+          (f) => `
+      <div class="item">
+        <strong>${safe(f.item_name)}</strong><br>
+        鍵值：${safe(f.item_key)}<br>
+        每月金額：${money(f.monthly_amount)}<br>
+        ${f.note ? `備註：${safe(f.note)}<br>` : ''}
+        <div class="row"><button onclick="editFixed('${f.id}')">編輯</button><button class="secondary" onclick="del('fixed','${f.id}')">刪除</button></div>
+      </div>`
+        )
+        .join('') || '<div class="item">尚無紀錄</div>';
+  }
 
-  const categoryMap = {};
-  monthCostRows.forEach((c) => (categoryMap[c.category] = (categoryMap[c.category] || 0) + Number(c.amount || 0)));
-  categoryMap['瓦斯'] = monthGasValue;
+  if ($('reportSummary')) {
+    const categoryMap = {};
+    monthCostRows.forEach((c) => (categoryMap[c.category] = (categoryMap[c.category] || 0) + Number(c.amount || 0)));
+    categoryMap['瓦斯'] = monthGasValue;
 
-  $('reportSummary').innerHTML = `
-    <div class="item">
-      <strong>${month} 月報表</strong><br><br>
-      本月營業額：${money(monthRevenueValue)}<br>
-      本月變動成本：${money(monthVariableValue)}<br>
-      本月固定成本：${money(monthFixedValue)}<br>
-      本月預估淨利：${money(monthProfitValue)}<br><br>
-      <strong>成本分類：</strong><br>
-      ${
-        Object.entries(categoryMap)
-          .sort((a, b) => b[1] - a[1])
-          .map(([k, v]) => `${safe(k)}：${money(v)}`)
-          .join('<br>') || '尚無資料'
-      }
-    </div>`;
+    $('reportSummary').innerHTML = `
+      <div class="item">
+        <strong>${month} 月報表</strong><br><br>
+        本月營業額：${money(monthRevenueValue)}<br>
+        本月變動成本：${money(monthVariableValue)}<br>
+        本月固定成本：${money(monthFixedValue)}<br>
+        本月預估淨利：${money(monthProfitValue)}<br><br>
+        <strong>成本分類：</strong><br>
+        ${
+          Object.entries(categoryMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([k, v]) => `${safe(k)}：${money(v)}`)
+            .join('<br>') || '尚無資料'
+        }
+      </div>`;
+  }
 }
 
 async function fetchAllFromSupabase() {
   if (!sb) return;
 
   try {
-    const [{ data: revenueData }, { data: gasData }, { data: costData }, { data: fixedData }] = await Promise.all([
+    const [revRes, gasRes, costRes, fixedRes] = await Promise.all([
       sb.from('daily_revenue').select('*').order('business_date', { ascending: false }),
       sb.from('gas_logs').select('*').order('log_date', { ascending: false }),
       sb.from('expense_records').select('*').order('expense_date', { ascending: false }),
       sb.from('fixed_costs').select('*').order('item_name', { ascending: true })
     ]);
 
-    if (revenueData) {
-      db.revenue = revenueData.map((x) => ({
+    if (revRes.data) {
+      db.revenue = revRes.data.map((x) => ({
         id: uid(),
         business_date: x.business_date,
         cash_amount: x.cash_amount || 0,
@@ -577,8 +610,8 @@ async function fetchAllFromSupabase() {
       }));
     }
 
-    if (gasData) {
-      db.gas = gasData.map((x) => ({
+    if (gasRes.data) {
+      db.gas = gasRes.data.map((x) => ({
         id: uid(),
         log_date: x.log_date,
         meter_reading: x.meter_reading,
@@ -588,8 +621,8 @@ async function fetchAllFromSupabase() {
       }));
     }
 
-    if (costData) {
-      db.costs = costData.map((x) => ({
+    if (costRes.data) {
+      db.costs = costRes.data.map((x) => ({
         id: uid(),
         expense_date: x.expense_date,
         category: x.category,
@@ -605,8 +638,8 @@ async function fetchAllFromSupabase() {
       }));
     }
 
-    if (fixedData && fixedData.length) {
-      db.fixed = fixedData.map((x) => ({
+    if (fixedRes.data && fixedRes.data.length) {
+      db.fixed = fixedRes.data.map((x) => ({
         id: uid(),
         item_key: x.item_key,
         item_name: x.item_name,
@@ -652,6 +685,7 @@ function loadDemo() {
       note: '測試'
     }
   ];
+
   db.gas = [
     {
       id: uid(),
@@ -670,6 +704,7 @@ function loadDemo() {
       note: ''
     }
   ];
+
   db.costs = [
     {
       id: uid(),
@@ -700,6 +735,7 @@ function loadDemo() {
       note: ''
     }
   ];
+
   saveDb();
   renderAll();
 }
@@ -711,7 +747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   clearRevenue();
   clearGas();
   clearCost();
-  $('reportMonth').value = monthStr();
+  if ($('reportMonth')) $('reportMonth').value = monthStr();
 
   if (sb) {
     await fetchAllFromSupabase();
